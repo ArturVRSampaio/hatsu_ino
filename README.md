@@ -27,6 +27,7 @@ boards/
 | Version | Description |
 |---|---|
 | [v0](boards/v0/README.md) | Arduino Nano + PAM8403 amplifier, first production run |
+| [v1](boards/v1/README.md) | v0 + shutdown sound via supercapacitor hold-up |
 
 ## Development
 

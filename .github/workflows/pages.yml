@@ -24,6 +24,8 @@ jobs:
         run: |
           mkdir -p docs/boards/v0
           printf -- "---\ntitle: Board v0\nparent: Boards\nnav_order: 1\n---\n\n" | cat - boards/v0/README.md > docs/boards/v0/index.md
+          mkdir -p docs/boards/v1
+          printf -- "---\ntitle: Board v1\nparent: Boards\nnav_order: 2\n---\n\n" | cat - boards/v1/README.md > docs/boards/v1/index.md
 
       - uses: actions/configure-pages@v4
 

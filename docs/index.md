@@ -14,6 +14,7 @@ An Arduino-based JDM car melody box that plays a WAV audio file when you start y
 | Version | Description |
 |---|---|
 | [v0](boards/v0/) | Arduino Nano + PAM8403 amplifier, first production run |
+| [v1](boards/v1/) | v0 + shutdown sound via supercapacitor hold-up |
 
 ## Source
 

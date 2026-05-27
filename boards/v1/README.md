@@ -6,6 +6,8 @@
 [![Coverage](https://codecov.io/gh/ArturVRSampaio/hatsu_ino/branch/master/graph/badge.svg)](https://codecov.io/gh/ArturVRSampaio/hatsu_ino)
 [![Deploy Docs](https://github.com/ArturVRSampaio/hatsu_ino/actions/workflows/pages.yml/badge.svg)](https://github.com/ArturVRSampaio/hatsu_ino/actions/workflows/pages.yml)
 
+> **Work in progress — do not use until officially released.**
+
 > **hatsu** (初, first sound) + **ino** (Arduino) — the first and last sound your car makes.
 
 Extends [v0](../v0/README.md) with a shutdown sound: when the ignition turns off, the device detects the power loss via a supercapacitor hold-up circuit, plays a farewell track, then enters deep sleep.

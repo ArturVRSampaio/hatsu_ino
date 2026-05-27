@@ -77,22 +77,51 @@ The supercapacitor keeps the board alive long enough to finish playback after th
 ### Circuit overview
 
 ```
-   CAR 12V+ ──────────────────────────────────────────────── (ignition sense) ────┐
-                │                                                                  │
-                ▼                                                                  │
-          ┌──────────────┐                                                    47kΩ │
-          │    LM2596    ├── 5V ──────────────────── [1N5819 ►|] ── 5V rail       │
-          │  BUCK CONV   ├── GND ───────────────────────────── GND rail            │
-          └──────────────┘                                │                   22kΩ │
-                                                    [1F SUPERCAP]                  │
-                                                          │                        ▼
-                                                         GND             Arduino D2 (sense)
+   CAR 12V+ ──┬──────────────────────────────────────────────────────────────────────
+              │                                             │
+              │   ┌──────────────┐                       [47kΩ]
+              └──►│    LM2596    ├── [1N5819 ►|] ──┬── (5V rail)    Arduino D2 (sense)
+   CAR GND  ────►│  BUCK CONV   ├─────────────────┼── (GND rail)         │
+                  └──────────────┘          [1F SUPERCAP]              [22kΩ]
+                                                   │                      │
+                                                  GND                    GND
 
-   5V rail ──► Arduino 5V, SD VCC, PAM8403 VCC
-   GND rail ──► Arduino GND, SD GND, PAM8403 GND
-
-   Arduino D9 ── [+ 10µF ─] ── PAM8403 L ── speaker
-   Arduino GND ── PAM8403 ⏚ and PAM8403 5V−
+                                          ┌──────────────────────────┐
+   ┌──────────────────────────────┐        │       SD MODULE          │
+   │        ARDUINO NANO          │        │                          │
+   │                              │        │  VCC  ◄──── 5V rail      │
+   │  5V  ◄──── 5V rail           │        │  GND  ◄──── GND rail     │
+   │  GND ◄──── GND rail          │        │                          │
+   │  D2  ◄──── ignition sense    │        │                          │
+   │  D4  ──────────────────────────────────► CS                      │
+   │  D11 ──────────────────────────────────► MOSI                    │
+   │  D12 ◄─────────────────────────────────  MISO                    │
+   │  D13 ──────────────────────────────────► SCK                     │
+   │                              │        └──────────────────────────┘
+   │  D9  ──── [+ 10µF ─] ─────────────────────────────────────────────────────┐
+   │  GND ──────────────────────────────────────────────────────────────────┐  │
+   └──────────────────────────────┘                                         │  │
+                                                                            │  │
+   ┌──────────────────────────────┐                                         │  │
+   │           PAM8403            │                                         │  │
+   │                              │                                         │  │
+   │  5V+  ◄──── 5V rail          │                                         │  │
+   │  GND  ◄──── GND rail         │                                         │  │
+   │                              │                                         │  │
+   │  R   ◄──────┐ (optional)     │                                         │  │
+   │  L   ◄──────┴──────────────────────────────────────────────────────────┘  │
+   │  5V─ ◄────────────────────────────────────── GND rail ────────────────────┘
+   │                              │                                ┌──────────────────┐
+   │                              │                                │     SPEAKER      │
+   │                              │                                │                  │
+   │  L+  ──────────────────────────────────────────────────────────────► POSITIVE    │
+   │  L─  ──────────────────────────────────────────────────────────────► NEGATIVE    │
+   │                              │      ┌──────────────────┐      └──────────────────┘
+   │  (optional)                  │      │     SPEAKER      │
+   │  R─  ────────────────────────────────────► POSITIVE    │
+   │  R+  ────────────────────────────────────► NEGATIVE    │
+   │                              │      └──────────────────┘
+   └──────────────────────────────┘
 ```
 
 > The Schottky diode (1N5819) sits between the LM2596 output and the 5V rail. When ignition cuts, the diode prevents the supercapacitor from back-feeding into the regulator. The supercapacitor then powers the 5V rail alone until the board sleeps.

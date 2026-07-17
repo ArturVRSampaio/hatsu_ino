@@ -58,9 +58,10 @@ struct Config {
   uint8_t delaySeconds;
   uint8_t minSizeKb;
   uint8_t playCount;    // total times to play the chosen track (minimum 1)
+  bool playToneOnError; // beep the speaker in sync with the LED error blinks
 };
 
-static const Config DEFAULT_CONFIG = {4, MODE_RANDOM, "", 0, 0, 1};
+static const Config DEFAULT_CONFIG = {4, MODE_RANDOM, "", 0, 0, 1, true};
 
 inline void copyTrackName(char* dst, const char* src) {
   strncpy(dst, src, TRACK_NAME_LEN - 1);
@@ -77,6 +78,13 @@ inline bool parseUint8(const char* str, uint8_t* out, uint8_t minVal, uint8_t ma
   if (end == str || *end != '\0') return false;
   if (v < (long)minVal || v > (long)maxVal) return false;
   *out = (uint8_t)v;
+  return true;
+}
+
+inline bool parseBoolFlag(const char* str, bool* out) {
+  uint8_t v;
+  if (!parseUint8(str, &v, 0, 1)) return false;
+  *out = (v != 0);
   return true;
 }
 
@@ -103,7 +111,7 @@ inline bool applyConfigLine(Config& cfg, const char* line) {
   trimRight(value, (int)strlen(value));
 
   if (strcasecmp(key, "VOLUME") == 0) {
-    return parseUint8(value, &cfg.volume, 0, 4);
+    return parseUint8(value, &cfg.volume, 0, 6);
   }
   if (strcasecmp(key, "MODE") == 0) {
     if (strcasecmp(value, "RANDOM") == 0)     { cfg.mode = MODE_RANDOM;     return true; }
@@ -120,6 +128,9 @@ inline bool applyConfigLine(Config& cfg, const char* line) {
   }
   if (strcasecmp(key, "PLAY_COUNT") == 0) {
     return parseUint8(value, &cfg.playCount, 1, 255);
+  }
+  if (strcasecmp(key, "ERROR_TONE") == 0) {
+    return parseBoolFlag(value, &cfg.playToneOnError);
   }
   if (strcasecmp(key, "TRACK") == 0) {
     if (!isWav(value) || strlen(value) >= TRACK_NAME_LEN) return false;

@@ -7,7 +7,7 @@
 #include <avr/wdt.h>
 #include "logic.h"
 
-const uint8_t  SD_CS_PIN               = 4;
+const uint8_t  SD_CS_PIN               = 10;
 const uint8_t  SPEAKER_PIN             = 9;
 const int      NOISE_PIN               = A0;   // intentionally unconnected — reads electrical noise for random seed
 const uint8_t  EEPROM_SEQ_INDEX_ADDR   = 0;    // sequential mode: play index (1 byte)
@@ -25,6 +25,12 @@ const unsigned long BLINK_DURATION_MS    = 200;
 const unsigned long BLINK_PAUSE_MS       = 800;
 const uint8_t      ERROR_BLINK_CYCLES    = 3;
 const uint8_t      CONFIG_LINE_LEN       = 32;
+
+const unsigned int ERROR_TONE_FREQ_HZ    = 1000;
+
+// Defaults to the DEFAULT_CONFIG value; errors before loadConfig() (e.g. SD init failure)
+// can't read CONFIG.TXT yet, so they use this default instead of the configured value.
+bool playToneOnError = true;
 
 enum ErrorCode {
   SD_INIT_FAILED   = 2,
@@ -61,6 +67,7 @@ void setup() {
 
   Config cfg = loadConfig();
   playsTarget = cfg.playCount;
+  playToneOnError = cfg.playToneOnError;
 
   if (cfg.delaySeconds > 0) delay((unsigned long)cfg.delaySeconds * 1000UL);
 
@@ -329,8 +336,10 @@ void haltWithErrorCode(ErrorCode code) {
   for (uint8_t cycle = 0; cycle < ERROR_BLINK_CYCLES; cycle++) {
     for (uint8_t i = 0; i < (uint8_t)code; i++) {
       digitalWrite(LED_BUILTIN, HIGH);
+      if (playToneOnError) tone(SPEAKER_PIN, ERROR_TONE_FREQ_HZ);
       delay(BLINK_DURATION_MS);
       digitalWrite(LED_BUILTIN, LOW);
+      if (playToneOnError) noTone(SPEAKER_PIN);
       delay(BLINK_DURATION_MS);
     }
     delay(BLINK_PAUSE_MS);

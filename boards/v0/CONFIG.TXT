@@ -2,7 +2,7 @@
 # Copy this file to the root of your SD card.
 # Lines starting with # are comments and are ignored.
 
-# Volume: 0 (silent) to 7 (max). Default: 6
+# Volume: 0 (silent) to 6 (max). Default: 6
 VOLUME=6
 
 # Seconds to wait after power-up before playing (0–255). Default: 0
@@ -26,3 +26,6 @@ MODE=RANDOM
 # Track to play in SINGLE mode (ignored in RANDOM and SEQUENTIAL modes).
 # Must be a valid 8.3 WAV filename matching a file on the SD card.
 # TRACK=STARTUP.WAV
+
+# Beep the speaker in sync with the LED error blink codes: 0 (off) or 1 (on). Default: 1
+# ERROR_TONE=1

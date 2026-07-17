@@ -70,10 +70,10 @@ When your car's ignition turns on, hatsu_ino detects the power-up and plays a WA
    │                              │        │  VCC  ◄──── 5V rail      │
    │  5V  ◄──── 5V rail           │        │  GND  ◄──── GND rail     │
    │  GND ◄──── GND rail          │        │                          │
-   │  D4  ──────────────────────────────────► CS                      │
+   │  D10 ──────────────────────────────────► CS                      │
+   │  D13 ──────────────────────────────────► SCK                     │
    │  D11 ──────────────────────────────────► MOSI                    │
    │  D12 ◄─────────────────────────────────  MISO                    │
-   │  D13 ──────────────────────────────────► SCK                     │
    │                              │        └──────────────────────────┘
    │  D9  ──── [+ 10µF ─] ──────────────────────────────────────────────────┐
    └──────────────────────────────┘                                         │
@@ -162,7 +162,7 @@ All components share a common ground. Every GND point in this guide must be conn
 |---|---|
 | VCC | 5V |
 | GND | GND |
-| CS | D4 |
+| CS | D10 |
 | MOSI | D11 |
 | MISO | D12 |
 | SCK | D13 |
@@ -196,7 +196,7 @@ The 10µF capacitor sits between D9 and the amplifier to block the DC offset fro
 | 5V rail *(Option A)* | LM2596 OUT+ | Nano 5V, SD VCC, PAM8403 5V+ |
 | 5V rail *(Option B)* | 5V source + | Nano 5V, SD VCC, PAM8403 5V+ |
 | GND rail | LM2596 OUT− or 5V source − | Nano GND, SD GND, PAM8403 5V− |
-| SPI CS | Nano D4 | SD CS |
+| SPI CS | Nano D10 | SD CS |
 | SPI MOSI | Nano D11 | SD MOSI |
 | SPI MISO | Nano D12 | SD MISO |
 | SPI SCK | Nano D13 | SD SCK |
@@ -232,10 +232,10 @@ Connect the Nano via USB, then in the IDE:
 | Setting | Value |
 |---|---|
 | Board | **Arduino Nano** |
-| Processor | **ATmega328P (Old Bootloader)** |
+| Processor | **ATmega328P** or **ATmega328P (Old Bootloader)** |
 | Port | the COM / tty port that appeared after plugging in |
 
-> Use **Old Bootloader** — most CH340 Nano clones ship with the older bootloader. If the upload fails with a sync error, this is the first thing to try.
+> CH340 Nano clones ship with either bootloader depending on the batch. If upload fails with a sync error (`not in sync: resp=0x00`), switch the Processor setting to the other option and try again.
 
 ### 6 — Upload
 
@@ -252,7 +252,7 @@ Click **Upload** (→ arrow button). The IDE will compile and flash the sketch. 
 1. Format the SD card as FAT32
 2. Copy any `.wav` files to the root directory
 3. Optionally create a `CONFIG.TXT` to customize behaviour (see below)
-4. On error, the built-in LED blinks the error code 3 times then the device enters deep sleep to prevent battery drain:
+4. On error, the built-in LED blinks the error code 3 times (accompanied by a 1kHz beep from the speaker in sync with each blink) then the device enters deep sleep to prevent battery drain:
    - **2 blinks** = SD card failed to initialize — either failed after 3 retries or hung the SPI bus (check wiring, reformat, or try a different card)
    - **3 blinks** = no `.wav` files found, file missing, or invalid WAV format
    - **4 blinks** = SD root directory failed to open (try reformatting)
@@ -302,6 +302,7 @@ Place a file named `CONFIG.TXT` in the root of the SD card to customise behaviou
 | `MIN_SIZE` | `0` – `255` | `0` | Skip WAV files smaller than N kilobytes (0 = no filter) |
 | `PLAY_COUNT` | `1` – `255` | `1` | How many times to play the chosen track before sleeping |
 | `TRACK` | any valid WAV filename | *(none)* | File to play in `SINGLE` mode |
+| `ERROR_TONE` | `0` / `1` | `1` | Beep the speaker in sync with the LED error blink codes. Errors that occur before the config loads (e.g. SD init failure) always beep, since `CONFIG.TXT` itself can't be read yet. |
 
 **Example:**
 ```

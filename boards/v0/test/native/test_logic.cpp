@@ -193,6 +193,26 @@ TEST_CASE("applyConfigLine MIN_SIZE rejects out-of-range values", "[config]") {
     REQUIRE(cfg.minSizeKb == 0);
 }
 
+// --- applyConfigLine ERROR_TONE ---
+
+TEST_CASE("applyConfigLine ERROR_TONE accepts valid values", "[config]") {
+    Config cfg = DEFAULT_CONFIG;
+    REQUIRE(applyConfigLine(cfg, "ERROR_TONE=0")); REQUIRE(cfg.playToneOnError == false);
+    REQUIRE(applyConfigLine(cfg, "ERROR_TONE=1")); REQUIRE(cfg.playToneOnError == true);
+}
+
+TEST_CASE("applyConfigLine ERROR_TONE rejects out-of-range values", "[config]") {
+    Config cfg = DEFAULT_CONFIG;
+    REQUIRE_FALSE(applyConfigLine(cfg, "ERROR_TONE=2"));
+    REQUIRE_FALSE(applyConfigLine(cfg, "ERROR_TONE=abc"));
+    REQUIRE(cfg.playToneOnError == true);
+}
+
+TEST_CASE("applyConfigLine ERROR_TONE default is true", "[config]") {
+    Config cfg = DEFAULT_CONFIG;
+    REQUIRE(cfg.playToneOnError == true);
+}
+
 TEST_CASE("applyConfigLine MIN_SIZE default is 0", "[config]") {
     Config cfg = DEFAULT_CONFIG;
     REQUIRE(cfg.minSizeKb == 0);
@@ -218,12 +238,13 @@ TEST_CASE("applyConfigLine VOLUME accepts valid range", "[config]") {
     REQUIRE(applyConfigLine(cfg, "VOLUME=0")); REQUIRE(cfg.volume == 0);
     REQUIRE(applyConfigLine(cfg, "VOLUME=3")); REQUIRE(cfg.volume == 3);
     REQUIRE(applyConfigLine(cfg, "VOLUME=4")); REQUIRE(cfg.volume == 4);
+    REQUIRE(applyConfigLine(cfg, "VOLUME=5")); REQUIRE(cfg.volume == 5);
+    REQUIRE(applyConfigLine(cfg, "VOLUME=6")); REQUIRE(cfg.volume == 6);
 }
 
 TEST_CASE("applyConfigLine VOLUME rejects out-of-range values", "[config]") {
     Config cfg = DEFAULT_CONFIG;
     cfg.volume = 3;
-    REQUIRE_FALSE(applyConfigLine(cfg, "VOLUME=5"));
     REQUIRE_FALSE(applyConfigLine(cfg, "VOLUME=7"));
     REQUIRE_FALSE(applyConfigLine(cfg, "VOLUME=8"));
     REQUIRE(cfg.volume == 3);

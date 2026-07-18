@@ -226,7 +226,7 @@ Cutoff ≈ 1 / (2π × R1 × C1) ≈ 16kHz — above the ~8kHz Nyquist limit of 
 
 ## 3D-printable case
 
-A parametric OpenSCAD enclosure lives at `case/case.scad`: a two-piece screw-together box (base + lid) with a flat back for VHB tape mounting, a speaker grille cut into the lid, and side cutouts for SD card and USB access. The Nano, SD module, and PAM8403 mount via printed edge rails (no reliance on PCB mounting holes, since most Nano clones don't have any).
+A parametric OpenSCAD enclosure lives at `case/case.scad`: a two-piece screw-together box (base + lid) with a flat back for VHB tape mounting, a speaker grille cut into the lid, and a microSD card slot + USB cutout sharing one end wall (the Nano and SD module both mount flush against that wall so their connectors line up with the cutouts). The Nano, SD module, and PAM8403 mount via printed edge rails (no reliance on PCB mounting holes, since most Nano clones don't have any), and are laid out in a separate zone from the speaker so nothing overlaps.
 
 **The dimensions in the file are typical values for common breakout boards, not measurements of your specific parts.** Measure your actual Nano, SD module, PAM8403, and speaker with calipers and adjust the variables at the top of `case.scad` before printing — module dimensions vary between suppliers.
 

@@ -21,36 +21,49 @@ floor_t   = 2.0;   // base floor thickness
 lid_t     = 2.0;   // lid plate thickness
 
 // ── Enclosure interior (adjust to taste once parts are confirmed) ────
+// Floor plan: the speaker occupies its own zone (X 0-46), fully separate
+// from the electronics zone (X 46-92) where the Nano/SD/PAM stack along Y.
+// This split-by-X layout is what keeps the speaker ring from intersecting
+// any of the boards — do not shrink in_w below what the three stacked
+// board heights + gaps require (18 + 24 + 18 + margins ≈ 74mm minimum).
 in_l = 92;  // interior length (X)
-in_w = 58;  // interior width  (Y)
+in_w = 80;  // interior width  (Y) — sized to stack Nano/SD/PAM without overlapping the speaker
 in_h = 26;  // interior height (Z), measured from floor top face — sized for a 1-2W speaker (deeper magnet/frame than a 0.5W speaker)
 
 // ── Arduino Nano ───────────────────────────────────────────────────
+// The Mini-USB connector is on the board's SHORT edge, not the long side —
+// the Nano sits flush against the far (X = in_l) wall so that edge, and
+// the USB cutout below, actually line up.
 nano_l = 45;
 nano_w = 18;
 nano_usb_w = 8.5;   // Mini-USB connector opening width
 nano_usb_h = 4.0;   // Mini-USB connector opening height
-nano_pos_x = in_l - nano_l - 6;   // Nano sits near the USB-accessible wall
-nano_pos_y = 6;
+nano_pos_x = in_l - nano_l;   // flush against the far wall
+nano_pos_y = 5;
 
-// ── SD card module ────────────────────────────────────────────────
+// ── SD card module (microSD) ──────────────────────────────────────
+// Also flush against the far wall, same side as the USB cutout, so the
+// card-eject edge lines up with the microSD slot cut below it.
 sd_l = 42;
 sd_w = 24;
-sd_card_slot_w = 26;  // opening width for the card itself to slide out
+sd_card_slot_w = 15;  // microSD width + finger clearance (NOT full-size SD)
 sd_card_slot_h = 3.0;
-sd_pos_x = 6;
-sd_pos_y = in_w - sd_w - 6;
+sd_pos_x = in_l - sd_l;
+sd_pos_y = 28;
 
 // ── PAM8403 amp board ─────────────────────────────────────────────
+// No external connector needed, so it just needs to sit in the
+// electronics zone (X >= 46) without overlapping the Nano/SD Y-bands.
 pam_l = 32;
 pam_w = 18;
-pam_pos_x = 6;
-pam_pos_y = 6;
+pam_pos_x = 47;
+pam_pos_y = 57;
 
 // ── Speaker (40mm 8Ω, 1-2W) ─────────────────────────────────────────
+// Centered in its own zone (X 0-46), clear of the electronics zone.
 spk_d       = 40 + 1.0;  // + fit clearance
 spk_lip_d   = spk_d - 6; // retention lip the speaker rim rests on
-spk_pos_x   = in_l - 24;
+spk_pos_x   = 23;
 spk_pos_y   = in_w / 2;
 grille_hole_d = 3;
 grille_spacing = 6;
@@ -104,15 +117,16 @@ module base() {
         translate([wall, wall, floor_t])
             cube([in_l, in_w, in_h + 1]);
 
-        // SD card slot — cut through the side wall, aligned with the module
-        translate([-1, wall + sd_pos_y + (sd_w - sd_card_slot_w) / 2,
+        // microSD card slot — cut through the far wall, aligned with the SD module
+        translate([wall + in_l - 1, wall + sd_pos_y + (sd_w - sd_card_slot_w) / 2,
                    floor_t + pcb_t + 1])
             cube([wall + 2, sd_card_slot_w, sd_card_slot_h + tol]);
 
-        // USB access — cut through the end wall, aligned with the Nano
-        translate([wall + nano_pos_x + (nano_l - nano_usb_w) / 2, -1,
+        // USB access — cut through the far wall (same wall as the SD slot,
+        // different Y band), aligned with the Nano's short edge
+        translate([wall + in_l - 1, wall + nano_pos_y + (nano_w - nano_usb_w) / 2,
                    floor_t + pcb_t])
-            cube([nano_usb_w + tol, wall + 2, nano_usb_h + tol]);
+            cube([wall + 2, nano_usb_w + tol, nano_usb_h + tol]);
     }
 
     translate([wall, wall, 0]) {

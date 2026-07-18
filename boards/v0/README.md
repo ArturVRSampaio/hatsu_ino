@@ -24,6 +24,8 @@ When your car's ignition turns on, hatsu_ino detects the power-up and plays a WA
 | Mini Speaker 0.5W 8Ω 40mm | Audio output | — |
 | LM2596 Adjustable Step-Down Buck Converter 3A | Steps 12V car power down to 5V *(optional — only needed if powering from the 12V car line)* | LM2596 |
 | Electrolytic Capacitor 10µF 50V 105°C | Audio coupling between D9 and PAM8403 IN+ *(1 required)* | — |
+| Resistor 1kΩ | RC low-pass filter, in series between D9 and the coupling capacitor *(optional — see Step 3)* | — |
+| Ceramic Capacitor 10nF (0.01µF) | RC low-pass filter, from the R1/coupling-cap junction to GND *(optional — see Step 3)* | — |
 | Micro SD card | Stores WAV files (FAT32 formatted) | — |
 
 ### Extra parts needed

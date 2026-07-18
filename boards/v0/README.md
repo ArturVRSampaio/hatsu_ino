@@ -185,6 +185,26 @@ The 10µF capacitor sits between D9 and the amplifier to block the DC offset fro
 
 > Pin **⏚** is the audio signal ground — connect it to Arduino GND. Pin **B** is the right channel input — leave it unconnected when using only the left channel.
 
+#### Optional: RC low-pass filter (recommended if audio sounds scratchy)
+
+The DC-blocking capacitor above does **not** remove the PWM carrier — it only strips the DC offset. TMRpcm drives D9 with a raw ~62.5kHz PWM square wave, and feeding that straight into the PAM8403 can sound harsh or scratchy. Adding a resistor + capacitor low-pass filter before the DC-blocking cap smooths the PWM into something closer to an analog waveform:
+
+```
+   D9 ──[ R1 1kΩ ]──┬──[+ C2 10µF −]──► PAM8403 L
+    (PWM out)       │      (existing
+                    │     DC-block cap)
+               [ C1 10nF ]
+                    │
+                   GND
+```
+
+| Part | Value |
+|---|---|
+| R1 | 1kΩ resistor, in series between D9 and the existing 10µF cap's **+** leg |
+| C1 | 10nF (0.01µF) ceramic capacitor, from the R1/C2 junction to GND |
+
+Cutoff ≈ 1 / (2π × R1 × C1) ≈ 16kHz — above the ~8kHz Nyquist limit of 16kHz-sample-rate WAV files, but well below the 62.5kHz PWM carrier, so it filters out switching noise without cutting into the audio itself.
+
 ---
 
 ### All connections at a glance
@@ -288,6 +308,38 @@ You can convert any audio file using ffmpeg:
 ffmpeg -i input.mp3 -ar 16000 -ac 1 -acodec pcm_u8 MELODY.WAV
 ```
 
+#### Batch-converting a folder of sounds
+
+To load a whole folder of source clips at once, map each source file to a valid 8.3 output name and loop the same ffmpeg conversion over all of them:
+
+```bash
+declare -A MAP=(
+  ["some-clip.mp3"]="CLIP1.WAV"
+  ["another-clip.mp3"]="CLIP2.WAV"
+  # add one entry per source file — keep output names <= 8 chars, letters/numbers only
+)
+
+SRC="/path/to/source/folder"
+OUT="/path/to/output/folder"
+
+for src in "${!MAP[@]}"; do
+  out="${MAP[$src]}"
+  ffmpeg -y -i "$SRC/$src" -ar 16000 -ac 1 -acodec pcm_u8 "$OUT/$out"
+done
+```
+
+Then verify each output is a valid WAV header before copying to the card:
+
+```bash
+for f in "$OUT"/*.WAV; do
+  xxd -l 12 "$f" | grep -q "5249 4646" && echo "$f: OK" || echo "$f: BAD HEADER"
+done
+```
+
+Finally, copy the converted files to the SD card's root directory (alongside `CONFIG.TXT`) and run `sync` before ejecting to make sure all writes are flushed. With multiple tracks on the card, `MODE=RANDOM` (the default) will pick a different one each ignition cycle without repeating the last one played — see `MODE=SHUFFLE` below if you'd rather cycle through every track before any repeats.
+
+> Only convert and load audio you have the rights to use — this pipeline doesn't check licensing, it just reformats whatever you point it at.
+
 ### CONFIG.TXT
 
 Place a file named `CONFIG.TXT` in the root of the SD card to customise behaviour without reflashing. The file is optional — if absent, defaults apply. A ready-to-use template is included in the repository as `CONFIG.TXT`.
@@ -321,7 +373,7 @@ MODE=SEQUENTIAL
 
 ## Testing
 
-There are two test suites:
+There are three test suites:
 
 ### Native tests (CI)
 
@@ -347,3 +399,12 @@ Validates the same logic running on the actual Nano using [AUnit](https://github
 2. Upload to the Nano
 3. Open Serial Monitor at **115200 baud**
 4. Results print automatically — all tests should show `PASSED`
+
+### Hardware smoke test (tone_test)
+
+A minimal standalone sketch that plays a 1kHz tone through the speaker for 5 seconds, independent of the SD card or TMRpcm. Useful for verifying the D9 → capacitor → PAM8403 → speaker audio path and power wiring in isolation before troubleshooting SD-related issues.
+
+**Run it:**
+1. Open `test/tone_test/tone_test.ino` in the Arduino IDE
+2. Upload to the Nano
+3. You should hear a 5-second tone; if not, the fault is in the audio wiring, not the SD card or firmware logic

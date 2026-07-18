@@ -1,5 +1,5 @@
 #include <AUnit.h>
-#include "../../utils.h"
+#include "logic.h"
 
 test(isWav_valid_uppercase)    { assertTrue(isWav("SONG.WAV")); }
 test(isWav_valid_lowercase)    { assertTrue(isWav("song.wav")); }

@@ -224,6 +224,20 @@ Cutoff ≈ 1 / (2π × R1 × C1) ≈ 16kHz — above the ~8kHz Nyquist limit of 
 | Audio GND | Nano GND | PAM8403 ⏚ and PAM8403 5V− |
 | Speaker | PAM8403 L+ / L− | Speaker + / − |
 
+## 3D-printable case
+
+A parametric OpenSCAD enclosure lives at `case/case.scad`: a two-piece screw-together box (base + lid) with a flat back for VHB tape mounting, a speaker grille cut into the lid, and side cutouts for SD card and USB access. The Nano, SD module, and PAM8403 mount via printed edge rails (no reliance on PCB mounting holes, since most Nano clones don't have any).
+
+**The dimensions in the file are typical values for common breakout boards, not measurements of your specific parts.** Measure your actual Nano, SD module, PAM8403, and speaker with calipers and adjust the variables at the top of `case.scad` before printing — module dimensions vary between suppliers.
+
+**Render and export STL** (requires [OpenSCAD](https://openscad.org/)):
+```bash
+openscad -o base.stl -D 'part="base"' case/case.scad
+openscad -o lid.stl  -D 'part="lid"'  case/case.scad
+```
+
+**Suggested print settings:** PLA or PETG, 0.2mm layer height, 3 perimeters, 20% infill, no supports needed for the base or lid as designed.
+
 ## Uploading the firmware
 
 ### 1 — Install the Arduino IDE

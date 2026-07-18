@@ -11,6 +11,8 @@
 
 A JDM car melody box that plays a WAV audio file when you start your car.
 
+If you build one (or fork it for your own board), a ⭐ helps other people find this project.
+
 ## Repository layout
 
 ```

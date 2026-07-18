@@ -20,6 +20,15 @@ pcb_t     = 1.6;   // standard PCB thickness (Nano / SD module / PAM8403)
 floor_t   = 2.0;   // base floor thickness
 lid_t     = 2.0;   // lid plate thickness
 
+// ── Text labels ────────────────────────────────────────────────────
+lid_label_text  = "hatsu_ino v0";
+lid_label_size  = 6;     // mm, character height
+lid_label_h     = 0.6;   // mm, embossed (raised) on the lid's outer face
+
+sig_text        = "ArturVRSampaio";
+sig_size        = 3;     // mm, character height
+sig_depth       = 0.6;   // mm, engraved (recessed) into the base floor
+
 // ── Enclosure interior (adjust to taste once parts are confirmed) ────
 // Floor plan: the speaker occupies its own zone (X 0-46), fully separate
 // from the electronics zone (X 46-92) where the Nano/SD/PAM stack along Y.
@@ -127,6 +136,13 @@ module base() {
         translate([wall + in_l - 1, wall + nano_pos_y + (nano_w - nano_usb_w) / 2,
                    floor_t + pcb_t])
             cube([wall + 2, nano_usb_w + tol, nano_usb_h + tol]);
+
+        // signature — engraved into the floor's open front strip (Y 0-5,
+        // before the Nano/speaker-ring rows start), visible with the lid off
+        translate([wall + in_l / 2, wall + 2.5, floor_t - sig_depth])
+            linear_extrude(height = sig_depth + 0.1)
+                text(sig_text, size = sig_size, halign = "center", valign = "center",
+                     font = "Liberation Sans");
     }
 
     translate([wall, wall, 0]) {
@@ -170,6 +186,13 @@ module lid() {
                 cylinder(h = lid_t + 2, d = boss_id + 0.4, $fn = 32);
         }
     }
+
+    // logo — embossed on the outer face, centered over the electronics
+    // zone (the speaker grille occupies the other half of the lid)
+    translate([wall + (46 + in_l) / 2, wall + in_w / 2, lid_t])
+        linear_extrude(height = lid_label_h)
+            text(lid_label_text, size = lid_label_size, halign = "center", valign = "center",
+                 font = "Liberation Sans:style=Bold");
 }
 
 if (part == "base") {

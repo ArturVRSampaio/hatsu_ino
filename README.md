@@ -5,6 +5,7 @@
 [![Arduino Build](https://github.com/ArturVRSampaio/hatsu_ino/actions/workflows/arduino-build.yml/badge.svg)](https://github.com/ArturVRSampaio/hatsu_ino/actions/workflows/arduino-build.yml)
 [![Coverage](https://codecov.io/gh/ArturVRSampaio/hatsu_ino/branch/master/graph/badge.svg)](https://codecov.io/gh/ArturVRSampaio/hatsu_ino)
 [![Deploy Docs](https://github.com/ArturVRSampaio/hatsu_ino/actions/workflows/pages.yml/badge.svg)](https://github.com/ArturVRSampaio/hatsu_ino/actions/workflows/pages.yml)
+[![License: MIT](https://img.shields.io/github/license/ArturVRSampaio/hatsu_ino)](LICENSE)
 
 > **hatsu** (初, first sound) + **ino** (Arduino) — the first sound your car makes.
 
@@ -45,3 +46,7 @@ Compile for Arduino Nano (ATmega328P old bootloader):
 ```bash
 arduino-cli compile --fqbn arduino:avr:nano:cpu=atmega328old boards/v0/hatsu_v0
 ```
+
+## License
+
+[MIT](LICENSE)

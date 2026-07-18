@@ -1,0 +1,16 @@
+# hatsu_ino
+
+> Arduino-based JDM car melody box that plays a WAV audio file through a speaker when the car's ignition turns on, then sleeps until the next start.
+
+hatsu_ino ("hatsu" = first sound, "ino" = Arduino) is an open-source (MIT licensed) hardware + firmware project. An Arduino Nano reads WAV files from an SD card and plays them through a PAM8403 amplifier and speaker on ignition power-up, then enters deep sleep (~0.1µA) until the next power cycle. Each board revision is self-contained under `boards/<version>/`, with its own wiring guide, Arduino sketch, a pure-logic header (`logic.h`) with no hardware dependency, and a native Catch2 test suite covering that logic.
+
+## Docs
+
+- [Rendered docs site](https://arturvrsampaio.github.io/hatsu_ino/): project overview and board list
+- [v0 board guide](https://github.com/ArturVRSampaio/hatsu_ino/blob/master/boards/v0/README.md): components, full wiring instructions (power, SD card SPI, audio path including the RC low-pass filter), CONFIG.TXT key reference, WAV file requirements, error/troubleshooting codes, and testing instructions for the first production board (Arduino Nano + PAM8403)
+
+## Source
+
+- [Root README](https://github.com/ArturVRSampaio/hatsu_ino/blob/master/README.md): repository layout and dev commands
+- [LICENSE](https://github.com/ArturVRSampaio/hatsu_ino/blob/master/LICENSE): MIT
+- [CONTRIBUTING](https://github.com/ArturVRSampaio/hatsu_ino/blob/master/CONTRIBUTING.md): how to add a board variant, fix a bug, or improve the docs

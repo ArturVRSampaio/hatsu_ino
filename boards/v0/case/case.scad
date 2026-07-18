@@ -23,7 +23,7 @@ lid_t     = 2.0;   // lid plate thickness
 // ── Enclosure interior (adjust to taste once parts are confirmed) ────
 in_l = 92;  // interior length (X)
 in_w = 58;  // interior width  (Y)
-in_h = 24;  // interior height (Z), measured from floor top face
+in_h = 26;  // interior height (Z), measured from floor top face — sized for a 1-2W speaker (deeper magnet/frame than a 0.5W speaker)
 
 // ── Arduino Nano ───────────────────────────────────────────────────
 nano_l = 45;
@@ -47,7 +47,7 @@ pam_w = 18;
 pam_pos_x = 6;
 pam_pos_y = 6;
 
-// ── Speaker (40mm 8Ω) ──────────────────────────────────────────────
+// ── Speaker (40mm 8Ω, 1-2W) ─────────────────────────────────────────
 spk_d       = 40 + 1.0;  // + fit clearance
 spk_lip_d   = spk_d - 6; // retention lip the speaker rim rests on
 spk_pos_x   = in_l - 24;

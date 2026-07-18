@@ -21,7 +21,7 @@ When your car's ignition turns on, hatsu_ino detects the power-up and plays a WA
 | Arduino Nano Compatible V3 ATmega328 CH340 | Main microcontroller | ATmega328P |
 | Micro SD Card Reader Module for Arduino | Reads WAV files via SPI | — |
 | PAM8403 Mini Digital Amplifier 2x3W 5V | Drives the speaker | PAM8403 |
-| Mini Speaker 0.5W 8Ω 40mm | Audio output | — |
+| Mini Speaker 1–2W 8Ω 40mm | Audio output | — |
 | LM2596 Adjustable Step-Down Buck Converter 3A | Steps 12V car power down to 5V *(optional — only needed if powering from the 12V car line)* | LM2596 |
 | Electrolytic Capacitor 10µF 50V 105°C | Audio coupling between the RC filter and PAM8403 IN+ *(1 required)* | — |
 | Resistor 1kΩ | RC low-pass filter, in series between D9 and the coupling capacitor *(1 required — see Step 3)* | — |

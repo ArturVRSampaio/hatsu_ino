@@ -8,3 +8,6 @@ build/
 *.elf
 *.hex
 *.map
+
+# IDE metadata
+.idea/

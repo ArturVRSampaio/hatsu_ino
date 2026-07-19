@@ -22,8 +22,47 @@ jobs:
 
       - name: Copy board docs into Jekyll source
         run: |
-          mkdir -p docs/boards/v0
-          printf -- "---\ntitle: Board v0\nparent: Boards\nnav_order: 1\n---\n\n" | cat - boards/v0/README.md > docs/boards/v0/index.md
+          order=1
+          for dir in boards/*/; do
+            name=$(basename "$dir")
+            [ -f "$dir/README.md" ] || continue
+            mkdir -p "docs/boards/$name"
+            printf -- "---\ntitle: Board %s\nparent: Boards\nnav_order: %d\n---\n\n" "$name" "$order" \
+              | cat - "$dir/README.md" > "docs/boards/$name/index.md"
+            order=$((order + 1))
+          done
+
+      - name: Generate docs/llms.txt from the current board list
+        run: |
+          {
+            echo "# hatsu_ino"
+            echo
+            echo "> Arduino-based JDM car melody box that plays an audio file through a speaker when the car's ignition turns on, then sleeps until the next start."
+            echo
+            echo "hatsu_ino (\"hatsu\" = first sound, \"ino\" = Arduino) is an open-source (MIT licensed) hardware + firmware project. Each board revision is self-contained under \`boards/<version>/\` in the source repo, with its own wiring guide and Arduino sketch."
+            echo
+            for dir in boards/*/; do
+              name=$(basename "$dir")
+              [ -f "$dir/README.md" ] || continue
+              desc=$(grep -v '^#\|^>\|^\[!\|^$' "$dir/README.md" | head -1)
+              echo "- **$name**: $desc"
+            done
+            echo
+            echo "## Docs"
+            echo
+            echo "- [Home](https://arturvrsampaio.github.io/hatsu_ino/): project overview and board list"
+            for dir in boards/*/; do
+              name=$(basename "$dir")
+              [ -f "$dir/README.md" ] || continue
+              echo "- [$name board guide](https://arturvrsampaio.github.io/hatsu_ino/boards/$name/): components, wiring, and setup for $name"
+            done
+            echo
+            echo "## Source"
+            echo
+            echo "- [GitHub repository](https://github.com/ArturVRSampaio/hatsu_ino): firmware source, native test suite, CI workflows"
+            echo "- [LICENSE](https://github.com/ArturVRSampaio/hatsu_ino/blob/master/LICENSE): MIT"
+            echo "- [CONTRIBUTING](https://github.com/ArturVRSampaio/hatsu_ino/blob/master/CONTRIBUTING.md): how to add a board variant, fix a bug, or improve the docs"
+          } > docs/llms.txt
 
       - uses: actions/configure-pages@v4
 

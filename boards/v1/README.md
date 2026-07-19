@@ -149,6 +149,8 @@ The DFPlayer's built-in amp drives the speaker directly — no external amplifie
 
 Without this, the DFPlayer Mini keeps drawing its own idle current the whole time the car's parked, even while the Nano is correctly asleep at ~0.1µA — undoing most of the point of sleeping at all.
 
+The DFPlayer has its own serial standby command (`0x0A`, wrapped by the library as `sleep()`), but it doesn't cut the module's own power — it only switches its internal state, and these modules (YX5200/GD3200B-based) still pull roughly 15-20mA in that state. Left connected like that on a parked car, that alone could flatten a typical 50Ah battery in about 3.5-4.6 months on its own, and likely much sooner in practice once stacked on the car's existing baseline parasitic draw (ECU memory, alarm, radio presets, etc.). Physically gating the DFPlayer's ground return instead drops its contribution to roughly the same ~0.1µA as the sleeping Nano — at that level our circuit's own leakage is irrelevant next to the battery's normal chemical self-discharge.
+
 | From | To |
 |---|---|
 | Nano **D5** | MOSFET **gate**, through a 100-220Ω resistor |

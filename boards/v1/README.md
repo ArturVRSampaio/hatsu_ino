@@ -35,7 +35,7 @@ The DFPlayer Mini owns its own SD card, its own audio decoder, its own proper DA
 |---|---|
 | Jumper wires / proto board | Connecting components |
 | Soldering iron | For permanent connections |
-| USB Type-A to Mini-B cable | Uploading firmware to the Nano |
+| USB Type-A to Mini-B cable | Uploading firmware and powering the Nano (via a car USB charger or accessory line for the final install) |
 | Car wiring tap or splice connector | Connecting to the ignition-switched power line |
 
 ## Code structure
@@ -44,22 +44,18 @@ The DFPlayer Mini owns its own SD card, its own audio decoder, its own proper DA
 |---|---|
 | `hatsu_v1.ino` | Arduino entry point — the entire firmware for now, since v1 has no board-specific pure logic yet. |
 
-## A hard-won lesson from v0, carried forward
-
-**Power the Nano through its 5V and GND pins directly from your external supply — not through USB.** v0's entire final debugging saga traced back to powering the board over USB, which is current-limited in ways that caused intermittent failures once real current draw was involved. Feed 5V/GND directly to the pins on the underside of the board from your actual power source (LM2596 output or a 5V accessory line), and only use USB for uploading firmware, never as the power source for a working install.
-
 ## Wiring
 
 ### Power
 
+**v1 is designed to run entirely off USB power.** Unlike v0 — whose separate SD module and external amplifier pushed combined current draw high enough that USB power caused real problems — v1's total load (just the Nano plus the DFPlayer Mini, no separate amp or SD module) is low enough to comfortably power through the Nano's USB port.
+
 | From | To |
 |---|---|
-| 5V source + | Arduino Nano **5V** pin |
-| 5V source + | DFPlayer Mini **VCC** |
-| 5V source − | Arduino Nano **GND** |
-| 5V source − | DFPlayer Mini **GND** |
+| Nano **5V** pin (output from its onboard regulator, powered via USB) | DFPlayer Mini **VCC** |
+| Nano **GND** | DFPlayer Mini **GND** |
 
-> As above: feed the Nano's 5V/GND pins directly from your actual power source, not through its USB port.
+For the car install, power the Nano's USB port from a car USB charger or switched USB accessory line. If you'd rather feed a clean external 5V directly instead (e.g. from the LM2596, bypassing the Nano's onboard regulator entirely), that still works too — just wire 5V/GND straight to the Nano's 5V/GND pins instead of through USB, same as v0's approach.
 
 ### DFPlayer Mini ↔ Nano (serial control)
 
@@ -96,6 +92,20 @@ Same process as v0:
 Format as FAT32, ≤32GB. Copy MP3 files to the root directory.
 
 DFPlayer Mini's `randomAll()` command plays a random file from across the whole card. File naming isn't as strict as v0's 8.3 requirement, but numbered names (`0001.mp3`, `0002.mp3`, etc.) are the most reliable convention across DFPlayer Mini clones — some cheap modules are picky about file ordering/naming, so if random playback misbehaves, numbered filenames are the first thing to try.
+
+## 3D-printable case
+
+A parametric OpenSCAD enclosure lives at `case/case.scad`, following the same two-piece screw-together design as v0: a flat back for VHB tape mounting, a speaker grille cut into the lid, and a microSD slot + USB cutout sharing one end wall (the Nano and DFPlayer Mini both mount flush against that wall so their connectors line up with the cutouts). No amp box needed — the DFPlayer Mini's built-in amp drives the speaker directly, so the layout is simpler than v0's. Same lid-logo/floor-signature setup as v0 too, via the `lid_label_text` / `sig_text` variables.
+
+**The dimensions in the file are estimates, not measurements — verify before printing.** Unlike v0 (whose case dimensions were confirmed against real hardware), v1's case was designed before the DFPlayer Mini module and speaker arrived. The DFPlayer Mini's footprint (assumed ~20×20mm) and microSD slot position especially vary between clones more than most breakout boards, and the speaker size (assumed ~50mm/3W/4Ω) hasn't been confirmed against an actual part yet. Measure both with calipers and adjust the variables at the top of `case.scad` once you have them in hand — the whole design was checked for internal consistency (no overlapping parts, wall cutouts land where expected) but not against real components.
+
+**Render and export STL** (requires [OpenSCAD](https://openscad.org/)):
+```bash
+openscad -o base.stl -D 'part="base"' case/case.scad
+openscad -o lid.stl  -D 'part="lid"'  case/case.scad
+```
+
+**Suggested print settings:** PLA or PETG, 0.2mm layer height, 3 perimeters, 20% infill, no supports needed for the base or lid as designed.
 
 ## Testing
 

@@ -238,14 +238,12 @@ TEST_CASE("applyConfigLine VOLUME accepts valid range", "[config]") {
     REQUIRE(applyConfigLine(cfg, "VOLUME=0")); REQUIRE(cfg.volume == 0);
     REQUIRE(applyConfigLine(cfg, "VOLUME=3")); REQUIRE(cfg.volume == 3);
     REQUIRE(applyConfigLine(cfg, "VOLUME=4")); REQUIRE(cfg.volume == 4);
-    REQUIRE(applyConfigLine(cfg, "VOLUME=5")); REQUIRE(cfg.volume == 5);
-    REQUIRE(applyConfigLine(cfg, "VOLUME=6")); REQUIRE(cfg.volume == 6);
 }
 
 TEST_CASE("applyConfigLine VOLUME rejects out-of-range values", "[config]") {
     Config cfg = DEFAULT_CONFIG;
     cfg.volume = 3;
-    REQUIRE_FALSE(applyConfigLine(cfg, "VOLUME=7"));
+    REQUIRE_FALSE(applyConfigLine(cfg, "VOLUME=5"));
     REQUIRE_FALSE(applyConfigLine(cfg, "VOLUME=8"));
     REQUIRE(cfg.volume == 3);
 }

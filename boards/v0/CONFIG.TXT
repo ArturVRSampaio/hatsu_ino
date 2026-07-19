@@ -2,8 +2,10 @@
 # Copy this file to the root of your SD card.
 # Lines starting with # are comments and are ignored.
 
-# Volume: 0 (silent) to 6 (max). Default: 6
-VOLUME=6
+# Volume: 0 (silent) to 4 (max/unity gain). Default: 4
+# Do not exceed 4 — TMRpcm's volume boost above unity gain overflows the
+# 8-bit PWM sample without clamping, causing digital noise/distortion.
+VOLUME=4
 
 # Seconds to wait after power-up before playing (0–255). Default: 0
 # DELAY=3

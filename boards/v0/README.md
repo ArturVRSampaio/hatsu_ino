@@ -23,9 +23,7 @@ When your car's ignition turns on, hatsu_ino detects the power-up and plays a WA
 | PAM8403 Mini Digital Amplifier 2x3W 5V | Drives the speaker | PAM8403 |
 | Mini Speaker 1–2W 8Ω 40mm | Audio output | — |
 | LM2596 Adjustable Step-Down Buck Converter 3A | Steps 12V car power down to 5V *(optional — only needed if powering from the 12V car line)* | LM2596 |
-| Electrolytic Capacitor 10µF 50V 105°C | Audio coupling between the RC filter and PAM8403 IN+ *(1 required)* | — |
-| Resistor 1kΩ | RC low-pass filter, in series between D9 and the coupling capacitor *(1 required — see Step 3)* | — |
-| Ceramic Capacitor 10nF (0.01µF) | RC low-pass filter, from the R1/coupling-cap junction to GND *(1 required — see Step 3)* | — |
+| Electrolytic Capacitor 10µF 50V 105°C | Audio coupling between D9 and PAM8403 IN+ *(1 required)* | — |
 | Micro SD card | Stores WAV files (FAT32 formatted) | — |
 
 ### Extra parts needed
@@ -51,7 +49,7 @@ When your car's ignition turns on, hatsu_ino detects the power-up and plays a WA
 1. Car ignition supplies power → either 12V through the LM2596 buck converter (stepped down to 5V), or directly from an existing 5V source
 2. Arduino Nano powers on and initializes the SD card module via SPI
 3. It picks a random WAV file from the SD card and plays it
-4. Audio is sent via PWM (pin D9) → RC low-pass filter → PAM8403 amplifier → speaker
+4. Audio is sent via PWM (pin D9) → PAM8403 amplifier → speaker
 5. Once playback finishes, the board enters deep sleep (~0.1µA) until the next ignition power cycle
 
 ## Assembly
@@ -77,32 +75,28 @@ When your car's ignition turns on, hatsu_ino detects the power-up and plays a WA
    │  D11 ─────────────────────────────────── MOSI                    │
    │  D12 ─────────────────────────────────── MISO                    │
    │                              │        └──────────────────────────┘
-   │  D9 ──[R1 1kΩ]──┬── [+ 10µF ─] ─────────────────────────────────────────┐
-   │                 │            │                                          │
-   │              [C1 10nF]       │                                          │
-   │                 │            │                                          │
-   │                GND           │                                          │
-   └──────────────────────────────┘                                          │
-                                                                             │
-   ┌──────────────────────────────┐                                          │
-   │           PAM8403            │                                          │
-   │                              │                                          │
-   │  5V+  ◄──── 5V rail          │                                          │
-   │  GND  ◄──── GND rail         │                                          │
-   │                              │                                          │
-   │  R   ◄──────┐ (optional)     │                                          │
-   │  L   ◄──────┴───────────────────────────────────────────────────────────┘
-   │                              │                         ┌──────────────────┐
-   │                              │                         │     SPEAKER      │
-   │                              │                         │                  │
-   │  L+  ───────────────────────────────────────────────────────► POSITIVE    │
-   │  L─  ───────────────────────────────────────────────────────► NEGATIVE    │
-   │                              │   ┌──────────────────┐  └──────────────────┘
-   │                              │   │     SPEAKER      │
-   │  (optional)                  │   │                  │
-   │  R─  ─────────────────────────────────► POSITIVE    │
-   │  R+  ─────────────────────────────────► NEGATIVE    │
-   │                              │   └──────────────────┘
+   │  D9  ──── [+ 10µF ─] ──────────────────────────────────────────────────┐
+   └──────────────────────────────┘                                         │
+                                                                            │
+   ┌──────────────────────────────┐                                         │
+   │           PAM8403            │                                         │
+   │                              │                                         │
+   │  5V+  ◄──── 5V rail          │                                         │
+   │  GND  ◄──── GND rail         │                                         │
+   │                              │                                         │
+   │  R   ◄──────┐ (optional)     │                                         │
+   │  L   ◄──────┴──────────────────────────────────────────────────────────┘
+   │                              │                                ┌──────────────────┐
+   │                              │                                │     SPEAKER      │
+   │                              │                                │                  │
+   │  L+  ──────────────────────────────────────────────────────────────► POSITIVE    │
+   │  L─  ──────────────────────────────────────────────────────────────► NEGATIVE    │
+   │                              │      ┌──────────────────┐      └──────────────────┘
+   │                              │      │     SPEAKER      │
+   │  (optional)                  │      │                  │
+   │  R─  ────────────────────────────────────► POSITIVE    │
+   │  R+  ────────────────────────────────────► NEGATIVE    │
+   │                              │      └──────────────────┘
    └──────────────────────────────┘                          
 
 ```
@@ -175,26 +169,13 @@ All components share a common ground. Every GND point in this guide must be conn
 
 ---
 
-### Step 3 — Audio (Nano → RC filter → capacitor → PAM8403 → speaker)
+### Step 3 — Audio (Nano → capacitor → PAM8403 → speaker)
 
-TMRpcm drives D9 with a raw ~62.5kHz PWM square wave. R1 + C1 form a low-pass filter that smooths this into something closer to an analog waveform before it reaches the 10µF capacitor, which blocks the remaining DC offset. Skipping the filter and feeding raw PWM straight into the PAM8403 tends to sound harsh or scratchy.
-
-```
-   D9 ──[ R1 1kΩ ]──┬──[+ C2 10µF −]──► PAM8403 L
-    (PWM out)       │      (DC-block
-                    │        cap)
-               [ C1 10nF ]
-                    │
-                   GND
-```
-
-Cutoff ≈ 1 / (2π × R1 × C1) ≈ 16kHz — above the ~8kHz Nyquist limit of 16kHz-sample-rate WAV files, but well below the 62.5kHz PWM carrier, so it filters out switching noise without cutting into the audio itself. The 10µF capacitor is **polarized** — the longer leg (+) faces R1, the shorter leg with the stripe (−) faces PAM8403.
+The 10µF capacitor sits between D9 and the amplifier to block the DC offset from the PWM signal. It is **polarized** — the longer leg (+) faces D9, the shorter leg with the stripe (−) faces PAM8403.
 
 | From | To |
 |---|---|
-| Nano **D9** | R1 |
-| R1 | Junction: C1 **and** Capacitor **+** leg |
-| Junction | C1 **−** leg → GND |
+| Nano **D9** | Capacitor **+** leg |
 | Capacitor **−** leg | PAM8403 **L** |
 | Nano **GND** | PAM8403 **⏚** |
 | Nano **GND** | PAM8403 **5V−** |
@@ -219,8 +200,7 @@ Cutoff ≈ 1 / (2π × R1 × C1) ≈ 16kHz — above the ~8kHz Nyquist limit of 
 | SPI MOSI | Nano D11 | SD MOSI |
 | SPI MISO | Nano D12 | SD MISO |
 | SPI SCK | Nano D13 | SD SCK |
-| Audio | Nano D9 | R1 (1kΩ) → junction → 10µF cap (+) → cap (−) → PAM8403 L |
-| Audio filter GND | R1/cap junction | C1 (10nF) → GND rail |
+| Audio | Nano D9 | 10µF cap (+) → cap (−) → PAM8403 L |
 | Audio GND | Nano GND | PAM8403 ⏚ and PAM8403 5V− |
 | Speaker | PAM8403 L+ / L− | Speaker + / − |
 
@@ -362,7 +342,7 @@ Place a file named `CONFIG.TXT` in the root of the SD card to customise behaviou
 
 | Key | Values | Default | Description |
 |---|---|---|---|
-| `VOLUME` | `0` – `6` | `4` | Playback volume. 4 = unity gain. 5–6 = boosted (each step doubles the PWM swing). **Set to 6 when using the PAM8403** — at lower values the PWM average is too low to bias the amplifier input correctly. Values above 6 overflow the PWM timer and cause no audio output. |
+| `VOLUME` | `0` – `4` | `4` | Playback volume. 4 = unity gain (recommended). **Do not exceed 4** — TMRpcm's volume boost above unity gain left-shifts each 8-bit PWM sample with no clamping, silently overflowing/wrapping any sample value that doesn't have headroom for the shift. This produces harsh digital noise, not louder clean audio, and gets worse on louder passages. |
 | `MODE` | `RANDOM` / `SEQUENTIAL` / `SINGLE` | `RANDOM` | Track selection mode |
 | `DELAY` | `0` – `255` | `0` | Seconds to wait after power-up before playing |
 | `MIN_SIZE` | `0` – `255` | `0` | Skip WAV files smaller than N kilobytes (0 = no filter) |
@@ -373,7 +353,7 @@ Place a file named `CONFIG.TXT` in the root of the SD card to customise behaviou
 **Example:**
 ```
 # hatsu_ino config
-VOLUME=5
+VOLUME=4
 MODE=SEQUENTIAL
 ```
 
@@ -416,7 +396,7 @@ Validates the same logic running on the actual Nano using [AUnit](https://github
 
 ### Hardware smoke test (tone_test)
 
-A minimal standalone sketch that plays a 1kHz tone through the speaker for 5 seconds, independent of the SD card or TMRpcm. Useful for verifying the D9 → RC filter → capacitor → PAM8403 → speaker audio path and power wiring in isolation before troubleshooting SD-related issues.
+A minimal standalone sketch that plays a 1kHz tone through the speaker for 5 seconds, independent of the SD card or TMRpcm. Useful for verifying the D9 → capacitor → PAM8403 → speaker audio path and power wiring in isolation before troubleshooting SD-related issues.
 
 **Run it:**
 1. Open `test/tone_test/tone_test.ino` in the Arduino IDE

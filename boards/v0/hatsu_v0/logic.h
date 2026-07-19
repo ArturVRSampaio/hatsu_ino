@@ -111,7 +111,7 @@ inline bool applyConfigLine(Config& cfg, const char* line) {
   trimRight(value, (int)strlen(value));
 
   if (strcasecmp(key, "VOLUME") == 0) {
-    return parseUint8(value, &cfg.volume, 0, 6);
+    return parseUint8(value, &cfg.volume, 0, 4);
   }
   if (strcasecmp(key, "MODE") == 0) {
     if (strcasecmp(value, "RANDOM") == 0)     { cfg.mode = MODE_RANDOM;     return true; }

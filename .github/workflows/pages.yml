@@ -32,6 +32,36 @@ jobs:
             order=$((order + 1))
           done
 
+      - name: Generate docs/index.md board list from the current boards
+        run: |
+          {
+            echo "---"
+            echo "title: Home"
+            echo "nav_order: 1"
+            echo "---"
+            echo
+            echo "# hatsu_ino"
+            echo
+            echo "> **hatsu** (初, first sound) + **ino** (Arduino) — the first sound your car makes."
+            echo
+            echo "An Arduino-based JDM car melody box that plays an audio file when you start your car, then enters deep sleep until the next start."
+            echo
+            echo "## Boards"
+            echo
+            echo "| Version | Description |"
+            echo "|---|---|"
+            for dir in boards/*/; do
+              name=$(basename "$dir")
+              [ -f "$dir/README.md" ] || continue
+              desc=$(grep -v '^#\|^>\|^\[!\|^$' "$dir/README.md" | head -1)
+              echo "| [$name](boards/$name/) | $desc |"
+            done
+            echo
+            echo "## Source"
+            echo
+            echo "[github.com/ArturVRSampaio/hatsu_ino](https://github.com/ArturVRSampaio/hatsu_ino)"
+          } > docs/index.md
+
       - name: Generate docs/llms.txt from the current board list
         run: |
           {

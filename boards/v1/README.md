@@ -27,6 +27,8 @@ The DFPlayer Mini owns its own SD card, its own audio decoder, its own proper DA
 | Mini Speaker 3W 4Ω | Audio output, driven directly by the DFPlayer's built-in amp | — |
 | LM2596 Adjustable Step-Down Buck Converter 3A | Steps 12V car power down to 5V *(optional — only needed if powering from the 12V car line)* | LM2596 |
 | Resistor 1kΩ | In series on the Nano TX → DFPlayer RX line (protects the DFPlayer's RX pin) | — |
+| N-channel logic-level MOSFET | Gates the DFPlayer Mini's power off during sleep, so it doesn't keep drawing current with the Nano powered down | IRLZ44N |
+| Resistor 100-220Ω | In series on the MOSFET gate pin | — |
 | microSD card | Stores MP3 files (FAT32 formatted) | — |
 
 ### Extra parts needed
@@ -45,6 +47,52 @@ The DFPlayer Mini owns its own SD card, its own audio decoder, its own proper DA
 | `hatsu_v1.ino` | Arduino entry point — the entire firmware for now, since v1 has no board-specific pure logic yet. |
 
 ## Wiring
+
+### Circuit overview
+
+```
+   ┌─────────────────────── Option A — 12V car line (optional) ─────────────────────┐
+   │                   ┌──────────────┐                                             │
+   │   CAR 12V+ ──────►│    LM2596    ├──── 5V  ────────────────────── (5V rail)    │
+   │   CAR GND  ──────►│  BUCK CONV   ├──── GND ────────────────────── (GND rail)   │
+   │                   └──────────────┘                                             │
+   └────────────────────────────────────────────────────────────────────────────────┘
+
+                                           ┌───────────────────────┐
+   ┌──────────────────────────────┐        │      DFPLAYER MINI    │
+   │        ARDUINO NANO          │        │                       │
+   │                              │        │  VCC  ◄──── 5V rail   │
+   │  5V  ◄──── 5V rail or USB    │        │  GND  ───────────────────┐
+   │  GND ◄──── GND rail          │        │                       │  │
+   │  D2  ◄────────────────────────────────── TX                   │  │
+   │  D3  ──[R1 1kΩ]────────────────────────► RX                   │  │
+   │  D4  ◄────────────────────────────────── BUSY                 │  │
+   │  D5  ──[R2 220Ω]───────────────┐       │                      │  │
+   │                              │ │       │  SPK_1 ─────────────────┼──┐
+   │  (USB) ◄── power             │ │       │  SPK_2 ─────────────────┼──┼┐
+   └──────────────────────────────┘ │       └──────────────────────┘  │  ││
+                                    │                                 │  ││
+                                ┌───┼────────────────┐                │  ││
+                                │ gate    Q1 MOSFET  │                │  ││
+                                │              drain │◄───────────────┘  ││
+                                │             source │                   ││
+                                └──────────┬─────────┘                   ││
+                                           ▼                             ││
+                                       GND rail                          ││
+                                                                         ││
+                                            ┌──────────────────┐         ││
+                                            │     SPEAKER      │         ││
+                                            │                  │         ││
+                                            │  POSITIVE ◄────────────────┘│
+                                            │  NEGATIVE ◄─────────────────┘
+                                            └──────────────────┘
+```
+
+> **Option A** (shown above) is the 12V car line via LM2596 — matches v0's setup if you're reusing that converter. **Option B (recommended for v1)**: skip the LM2596 entirely and power the Nano through its USB port instead (car USB charger or switched accessory line), letting the Nano's onboard regulator supply the 5V rail for the DFPlayer Mini. See the Power section below for the reasoning.
+>
+> **Q1** (N-channel MOSFET, e.g. IRLZ44N) gates the DFPlayer Mini's GND return — its drain connects to the DFPlayer's GND, its source connects to the actual GND rail, and its gate is driven by Nano D5 through resistor R2. This is what actually cuts the DFPlayer's power during sleep — see the "Power gate" section below for why it's needed.
+>
+> The 1kΩ resistor (R1) on the Nano's TX → DFPlayer RX line protects the DFPlayer's RX pin from the Nano's 5V logic level.
 
 ### Power
 
@@ -75,6 +123,18 @@ For the car install, power the Nano's USB port from a car USB charger or switche
 | SPK_2 | Speaker **(−)** |
 
 The DFPlayer's built-in amp drives the speaker directly — no external amplifier needed.
+
+### Power gate (DFPlayer sleep cutoff)
+
+Without this, the DFPlayer Mini keeps drawing its own idle current the whole time the car's parked, even while the Nano is correctly asleep at ~0.1µA — undoing most of the point of sleeping at all.
+
+| From | To |
+|---|---|
+| Nano **D5** | MOSFET **gate**, through a 100-220Ω resistor |
+| DFPlayer Mini **GND** | MOSFET **drain** |
+| MOSFET **source** | GND rail |
+
+The Nano's own GND stays wired directly to the rail — only the DFPlayer Mini's ground return is gated. `hatsu_v1.ino` drives D5 high at boot (powering the DFPlayer on) and low right before sleeping (cutting it off), waking it again on the next ignition cycle.
 
 ## Uploading the firmware
 

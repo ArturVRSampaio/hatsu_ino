@@ -6,8 +6,10 @@
 const uint8_t DFPLAYER_RX_PIN = 2;  // Nano RX <- DFPlayer TX
 const uint8_t DFPLAYER_TX_PIN = 3;  // Nano TX -> DFPlayer RX (through a 1kΩ series resistor)
 const uint8_t BUSY_PIN        = 4;  // DFPlayer BUSY: LOW while playing, HIGH when idle
+const uint8_t DFPLAYER_GATE_PIN = 5; // gates the DFPlayer's GND return through an N-channel MOSFET
 const uint8_t DEFAULT_VOLUME  = 20; // 0-30
 
+const unsigned long GATE_SETTLE_DELAY_MS    = 50;   // let the DFPlayer's rail actually rise before booting it
 const unsigned long DFPLAYER_BOOT_DELAY_MS  = 1000; // let the module finish booting before sending commands
 const unsigned long PLAYBACK_START_DELAY_MS = 500;  // give playback a moment to actually start before polling BUSY
 const unsigned long BUSY_POLL_MS            = 100;
@@ -25,6 +27,10 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
   pinMode(BUSY_PIN, INPUT_PULLUP);
+
+  pinMode(DFPLAYER_GATE_PIN, OUTPUT);
+  digitalWrite(DFPLAYER_GATE_PIN, HIGH); // power the DFPlayer Mini on
+  delay(GATE_SETTLE_DELAY_MS);
 
   dfSerial.begin(9600);
   delay(DFPLAYER_BOOT_DELAY_MS);
@@ -46,7 +52,11 @@ void setup() {
 void loop() {}
 
 // ~20mA active → ~0.1µA in power-down. Wakes on next ignition power cycle.
+// Cuts the DFPlayer Mini's power via DFPLAYER_GATE_PIN first — without this,
+// the DFPlayer keeps drawing its own idle current the whole time the Nano
+// sleeps, which would undo most of the point of sleeping at all.
 void enterPowerDownSleep() {
+  digitalWrite(DFPLAYER_GATE_PIN, LOW);
   digitalWrite(LED_BUILTIN, LOW);
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();

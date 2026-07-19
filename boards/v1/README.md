@@ -8,15 +8,15 @@ A JDM car melody box that plays an MP3 file when you start your car — built ar
 
 ## What it does
 
-When your car's ignition turns on, the Nano wakes the DFPlayer Mini, tells it to play a random track from its SD card, waits for playback to finish, then enters deep sleep until the next ignition cycle.
+When your car's ignition turns on, the Nano wakes the DFPlayer Mini, picks a track according to the configured mode (see Configuration below), waits for playback to finish, then enters deep sleep until the next ignition cycle.
 
 ## Why v1 is different from v0
 
 [v0](../v0/README.md) drives audio directly from the Nano — reading WAV files itself, generating PWM audio, and amplifying it externally. That works, but chasing audio-quality and power-delivery bugs through that whole chain was the majority of the effort in building it.
 
-The DFPlayer Mini owns its own SD card, its own audio decoder, its own proper DAC, and its own built-in amplifier — all on one small, purpose-built module. The Nano's job shrinks down to sending simple commands over a 2-wire serial connection ("play a random track", "set volume") instead of doing file I/O and PWM audio generation itself. This sidesteps WAV header parsing, PWM filtering, and amp-input signal levels entirely — categories of bugs v0 spent a lot of time on.
+The DFPlayer Mini owns its own SD card, its own audio decoder, its own proper DAC, and its own built-in amplifier — all on one small, purpose-built module. The Nano's job shrinks down to sending simple commands over a 2-wire serial connection ("play track N", "set volume") instead of doing file I/O and PWM audio generation itself. This sidesteps WAV header parsing, PWM filtering, and amp-input signal levels entirely — categories of bugs v0 spent a lot of time on.
 
-**v1 intentionally starts minimal**: play one random track on power-up, then sleep. No `CONFIG.TXT`, no track-selection modes, no LED error codes yet — those can be added later the same way v0 grew them, once the basic build is confirmed working on real hardware.
+**No `CONFIG.TXT` support** — and this isn't a "not yet," it's architectural: the Nano has no direct filesystem access to the DFPlayer's SD card (only the 2-wire serial link), so it can't read a config file off it the way v0 could. Settings here are compile-time constants instead — see Configuration below. LED error codes still TODO.
 
 ## Components
 
@@ -44,7 +44,28 @@ The DFPlayer Mini owns its own SD card, its own audio decoder, its own proper DA
 
 | File | Role |
 |---|---|
-| `hatsu_v1.ino` | Arduino entry point — the entire firmware for now, since v1 has no board-specific pure logic yet. |
+| `hatsu_v1.ino` | Arduino entry point — hardware setup, DFPlayer control, power gating, sleep. |
+| `logic.h` | Testable pure logic — sequential/shuffle index math (tested natively, no hardware dependency). Track numbers only, no filenames, since the Nano has no filesystem access on this board. |
+| `test/native/test_logic.cpp` | Host-side Catch2 tests for everything in `logic.h`. |
+
+## Configuration
+
+v1 has no `CONFIG.TXT` (see "Why v1 is different from v0" above for why) — settings are compile-time constants at the top of `hatsu_v1.ino`, edited before uploading:
+
+| Constant | Values | Default | Description |
+|---|---|---|---|
+| `CONFIG_MODE` | `MODE_RANDOM` / `MODE_SEQUENTIAL` / `MODE_SHUFFLE` / `MODE_SINGLE` | `MODE_RANDOM` | Track selection mode |
+| `CONFIG_SINGLE_TRACK` | `1` – `255` | `1` | Track number to play in `MODE_SINGLE` (DFPlayer track numbers are 1-based) |
+| `CONFIG_PLAY_COUNT` | `1` – `255` | `1` | How many times to play the chosen track before sleeping |
+| `CONFIG_DELAY_SECONDS` | `0` – `255` | `0` | Seconds to wait after power-up before playing |
+
+**MODE_RANDOM** — uses the DFPlayer's own `randomAll()` command. Its exact selection algorithm (whether it avoids repeats, etc.) is opaque from the Nano's side — no visibility or control beyond "play something."
+
+**MODE_SEQUENTIAL** — plays tracks in numeric order (1, 2, 3, ...), advancing one per ignition cycle. Current position is stored in the Nano's EEPROM, same persistence approach as v0.
+
+**MODE_SHUFFLE** — plays every track exactly once before any repeats, via an EEPROM bitmask (same logic as v0, just resolving to track numbers instead of filenames). Supports up to 16 tracks; if the DFPlayer reports more than that, falls back to `MODE_RANDOM`'s behavior for that cycle.
+
+**MODE_SINGLE** — always plays `CONFIG_SINGLE_TRACK`.
 
 ## Wiring
 
@@ -169,4 +190,15 @@ openscad -o lid.stl  -D 'part="lid"'  case/case.scad
 
 ## Testing
 
-No native test suite yet — v1 currently has no board-specific pure logic (`logic.h`) to test, since track selection is handled by the DFPlayer module itself rather than Nano-side code. A native Catch2 suite will be added here once real logic (config parsing, track-selection modes, etc.) gets built, following the same pattern as [v0's test suite](../v0/test/native/).
+### Native tests (CI)
+
+Tests for the sequential/shuffle index math in `logic.h`, compiled and run on the host with [Catch2](https://github.com/catchorg/Catch2), same pattern as [v0's test suite](../v0/test/native/).
+
+To run locally:
+```bash
+cmake -S test/native -B test/native/build
+cmake --build test/native/build
+./test/native/build/tests
+```
+
+Requires CMake ≥ 3.14 and a C++17 compiler. Catch2 is fetched automatically.

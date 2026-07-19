@@ -25,6 +25,8 @@ boards/
     CONFIG.TXT   # example SD card config file for v0
   v1/
     hatsu_v1/    # Arduino sketch
+      logic.h    # board logic (tested natively, no hardware dependency)
+    test/        # native unit test suite (Catch2 + CMake)
     README.md    # wiring, components, and setup for v1
 ```
 
@@ -43,6 +45,10 @@ boards/
 cmake -S boards/v0/test/native -B boards/v0/test/native/build
 cmake --build boards/v0/test/native/build
 ./boards/v0/test/native/build/tests
+
+cmake -S boards/v1/test/native -B boards/v1/test/native/build
+cmake --build boards/v1/test/native/build
+./boards/v1/test/native/build/tests
 ```
 
 ### Arduino build

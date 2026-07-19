@@ -8,6 +8,8 @@
 
 > **hatsu** (初, first sound) + **ino** (Arduino) — the first sound your car makes.
 
+> **Deprecated in favor of [v1](../v1/README.md).** v0 is fully working and documented, but the Nano-driven WAV/PWM/amp chain here needed a lot of debugging to get stable. v1 offloads audio to a DFPlayer Mini module instead, which sidesteps most of that. This README stays as a working reference; new builds should start with v1.
+
 A JDM car melody box that plays a WAV audio file when you start your car.
 
 ## What it does

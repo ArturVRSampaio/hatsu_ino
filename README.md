@@ -23,13 +23,17 @@ boards/
     test/        # native unit test suite (Catch2 + CMake)
     README.md    # wiring, components, and setup for v0
     CONFIG.TXT   # example SD card config file for v0
+  v1/
+    hatsu_v1/    # Arduino sketch
+    README.md    # wiring, components, and setup for v1
 ```
 
 ## Boards
 
 | Version | Description |
 |---|---|
-| [v0](boards/v0/README.md) | Arduino Nano + PAM8403 amplifier, first production run |
+| [v0](boards/v0/README.md) | Arduino Nano + PAM8403 amplifier, first production run *(deprecated in favor of v1)* |
+| [v1](boards/v1/README.md) | Arduino Nano + DFPlayer Mini (self-contained SD/decode/amp module) *(work in progress)* |
 
 ## Development
 
@@ -47,6 +51,7 @@ Compile for Arduino Nano (ATmega328P old bootloader):
 
 ```bash
 arduino-cli compile --fqbn arduino:avr:nano:cpu=atmega328old boards/v0/hatsu_v0
+arduino-cli compile --fqbn arduino:avr:nano:cpu=atmega328old boards/v1/hatsu_v1
 ```
 
 ## License

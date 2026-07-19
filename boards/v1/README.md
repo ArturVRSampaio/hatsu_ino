@@ -23,7 +23,7 @@ The DFPlayer Mini owns its own SD card, its own audio decoder, its own proper DA
 | Component | Description | Code |
 |---|---|---|
 | Arduino Nano Compatible V3 ATmega328 CH340 | Main microcontroller | ATmega328P |
-| DFPlayer Mini MP3 module | Reads MP3s from its own SD card, decodes, and amplifies | DFPlayer Mini |
+| DFPlayer Mini MP3 module | Reads MP3s from its own SD card, decodes, and amplifies — see [DFRobot's official docs](https://wiki.dfrobot.com/DFPlayer_Mini_SKU_DFR0299) (pinout, command protocol, specs) | DFPlayer Mini |
 | Mini Speaker 3W 4Ω | Audio output, driven directly by the DFPlayer's built-in amp | — |
 | LM2596 Adjustable Step-Down Buck Converter 3A | Steps 12V car power down to 5V *(optional — only needed if powering from the 12V car line)* | LM2596 |
 | Resistor 1kΩ | In series on the Nano TX → DFPlayer RX line (protects the DFPlayer's RX pin) | — |
@@ -163,7 +163,7 @@ Same process as v0:
 
 1. Install the [Arduino IDE](https://www.arduino.cc/en/software) (version 2.x recommended)
 2. Install the CH340 driver if needed (Windows/macOS — see [v0's README](../v0/README.md#2--install-the-ch340-driver) for details; Linux needs no action)
-3. Arduino IDE → **Sketch → Include Library → Manage Libraries** → search `DFRobotDFPlayerMini` → install
+3. Arduino IDE → **Sketch → Include Library → Manage Libraries** → search [`DFRobotDFPlayerMini`](https://github.com/DFRobot/DFRobotDFPlayerMini) → install
 4. File → Open → select `hatsu_v1.ino`
 5. Board: **Arduino Nano**, Processor: **ATmega328P** (or **ATmega328P (Old Bootloader)** if upload fails with a sync error — try the other option)
 6. Click **Upload**

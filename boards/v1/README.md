@@ -2,13 +2,15 @@
 
 > **hatsu** (初, first sound) + **ino** (Arduino) — the first sound your car makes.
 
-> **Work in progress.** The firmware here compiles but hasn't been tested on real hardware yet — the DFPlayer Mini module is still on order. Wiring and behavior may change once it's actually been built and tested. [v0](../v0/README.md) is the confirmed-working board in the meantime.
+> **Confirmed working on real hardware** (Nano + DFPlayer Mini clone + 3W/4Ω speaker): boots, reads the SD card, plays a random track, and powers the DFPlayer back off before sleeping. The 3D-printed case dimensions are still unverified against the real parts — see the case section below.
 
 A JDM car melody box that plays an MP3 file when you start your car — built around a DFPlayer Mini module instead of driving audio from the Nano itself.
 
 ## What it does
 
 When your car's ignition turns on, the Nano wakes the DFPlayer Mini, picks a track according to the configured mode (see Configuration below), waits for playback to finish, then enters deep sleep until the next ignition cycle.
+
+Before waking the DFPlayer, the Nano checks its own 5V rail using the ATmega328's internal 1.1V bandgap reference — no extra hardware needed. If the rail reads below `LOW_VOLTAGE_THRESHOLD_MV` (default 4500mV, set in `hatsu_v1.ino`), it halts with the standard error blink instead of booting the DFPlayer on a sagging supply, which is more likely to produce garbled audio or an unreliable boot than a clean, visible failure.
 
 ## Why v1 is different from v0
 
@@ -58,8 +60,9 @@ v1 has no `CONFIG.TXT` (see "Why v1 is different from v0" above for why) — set
 | `CONFIG_SINGLE_TRACK` | `1` – `255` | `1` | Track number to play in `MODE_SINGLE` (DFPlayer track numbers are 1-based) |
 | `CONFIG_PLAY_COUNT` | `1` – `255` | `1` | How many times to play the chosen track before sleeping |
 | `CONFIG_DELAY_SECONDS` | `0` – `255` | `0` | Seconds to wait after power-up before playing |
+| `CONFIG_EQ` | `DFPLAYER_EQ_NORMAL` / `_POP` / `_ROCK` / `_JAZZ` / `_CLASSIC` / `_BASS` | `DFPLAYER_EQ_NORMAL` | Equalizer preset applied to the DFPlayer's built-in amp |
 
-**MODE_RANDOM** — uses the DFPlayer's own `randomAll()` command. Its exact selection algorithm (whether it avoids repeats, etc.) is opaque from the Nano's side — no visibility or control beyond "play something."
+**MODE_RANDOM** — the Nano reads the SD card's track count and picks a random track number itself, then calls `play(N)`. This used to rely on the DFPlayer's own `randomAll()` command instead, but that proved unreliable on real hardware — see "Known hardware quirks" below.
 
 **MODE_SEQUENTIAL** — plays tracks in numeric order (1, 2, 3, ...), advancing one per ignition cycle. Current position is stored in the Nano's EEPROM, same persistence approach as v0.
 
@@ -93,14 +96,15 @@ v1 has no `CONFIG.TXT` (see "Why v1 is different from v0" above for why) — set
    │  (USB) ◄── power             │ │       │  SPK_2 ─────────────────┼──┼┐
    └──────────────────────────────┘ │       └──────────────────────┘  │  ││
                                     │                                 │  ││
-                                ┌───┼────────────────┐                │  ││
-                                │ gate    Q1 MOSFET  │                │  ││
-                                │              drain │◄───────────────┘  ││
-                                │             source │                   ││
-                                └──────────┬─────────┘                   ││
-                                           ▼                             ││
-                                       GND rail                          ││
-                                                                         ││
+      ┌────────────────────┐        │                                 │  ││
+      │         Q1 MOSFET  │        │                                 │  ││
+      │                    │        │                                 │  ││
+      │  G       D     S   │        │                                 │  ││
+      └──┼───────┼─────┼───┘        │                                 │  ││
+         │       │   GND rail       │                                 │  ││
+         │       │                  │                                 │  ││
+         │       └──────────────────┼─────────────────────────────────┘  ││
+         └──────────────────────────┘                                    ││
                                             ┌──────────────────┐         ││
                                             │     SPEAKER      │         ││
                                             │                  │         ││
@@ -174,7 +178,16 @@ Same process as v0:
 
 Format as FAT32, ≤32GB. Copy MP3 files to the root directory.
 
-DFPlayer Mini's `randomAll()` command plays a random file from across the whole card. File naming isn't as strict as v0's 8.3 requirement, but numbered names (`0001.mp3`, `0002.mp3`, etc.) are the most reliable convention across DFPlayer Mini clones — some cheap modules are picky about file ordering/naming, so if random playback misbehaves, numbered filenames are the first thing to try.
+`MODE_RANDOM` reads the card's total file count and picks a track number itself (see "Known hardware quirks" below for why). File naming isn't as strict as v0's 8.3 requirement, but numbered names (`0001.mp3`, `0002.mp3`, etc.) are the most reliable convention across DFPlayer Mini clones — some cheap modules are picky about file ordering/naming.
+
+## Known hardware quirks
+
+Found during bring-up on a real DFPlayer Mini clone — worth knowing if you hit similar symptoms:
+
+- **`randomAll()` doesn't stop.** The DFPlayer's own random-play command kept auto-advancing through every track on the card indefinitely, regardless of anything the Nano did afterward — the firmware's watchdog would fire (since it never saw BUSY go idle) while the module kept right on playing. `hatsu_v1.ino` no longer uses it: `MODE_RANDOM` instead reads the track count and calls `play(N)` on a Nano-picked random track, which behaves like any other single-track play.
+- **Loop-all can be on by default.** Some clones boot with loop-all playback enabled. `hatsu_v1.ino` calls `player.disableLoopAll()` right after `player.begin()` as a precaution.
+- **Query commands are flakier than playback commands.** Fire-and-forget commands like `play()` were reliable, but commands that wait for a response (`readFileCounts()` in particular) failed intermittently on the first attempt. `hatsu_v1.ino` retries these up to 5 times (`QUERY_RETRY_COUNT`) before giving up.
+- **Tracks are longer than you'd guess from a "chime."** `PLAYBACK_WATCHDOG_MS` originally defaulted to 8 seconds (sized for a short startup jingle) and falsely tripped on real songs. It's now 60 seconds — adjust it in `hatsu_v1.ino` if your longest track runs past that.
 
 ## 3D-printable case
 

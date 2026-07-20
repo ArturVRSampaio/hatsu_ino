@@ -10,21 +10,27 @@ const PlayMode CONFIG_MODE          = MODE_RANDOM; // MODE_RANDOM, MODE_SEQUENTI
 const uint8_t  CONFIG_SINGLE_TRACK  = 1;   // track number to play in MODE_SINGLE (1-based, DFPlayer numbering)
 const uint8_t  CONFIG_PLAY_COUNT    = 1;   // how many times to play the chosen track before sleeping (1-255)
 const uint8_t  CONFIG_DELAY_SECONDS = 0;   // seconds to wait after power-up before playing (0-255)
+const uint8_t  CONFIG_EQ            = DFPLAYER_EQ_NORMAL; // DFPLAYER_EQ_NORMAL/POP/ROCK/JAZZ/CLASSIC/BASS
 
 const uint8_t DFPLAYER_RX_PIN   = 2;  // Nano RX <- DFPlayer TX
 const uint8_t DFPLAYER_TX_PIN   = 3;  // Nano TX -> DFPlayer RX (through a 1kΩ series resistor)
 const uint8_t BUSY_PIN          = 4;  // DFPlayer BUSY: LOW while playing, HIGH when idle
 const uint8_t DFPLAYER_GATE_PIN = 5;  // gates the DFPlayer's GND return through an N-channel MOSFET
 const int     NOISE_PIN         = A0; // intentionally unconnected — reads electrical noise for random seed
-const uint8_t DEFAULT_VOLUME    = 20; // 0-30
+const uint8_t DEFAULT_VOLUME    = 30; // 0-30
+
+const uint16_t LOW_VOLTAGE_THRESHOLD_MV = 4500; // below this, the 5V rail is too weak to trust — halt before waking the DFPlayer
 
 const uint8_t EEPROM_SEQ_INDEX_ADDR    = 0; // sequential mode: play index (1 byte)
 const uint8_t EEPROM_SHUFFLE_MASK_ADDR = 1; // shuffle mode: bitmask (2 bytes, addr 1-2)
 
-const unsigned long GATE_SETTLE_DELAY_MS    = 50;   // let the DFPlayer's rail actually rise before booting it
-const unsigned long DFPLAYER_BOOT_DELAY_MS  = 1000; // let the module finish booting before sending commands
-const unsigned long PLAYBACK_START_DELAY_MS = 500;  // give playback a moment to actually start before polling BUSY
-const unsigned long PLAYBACK_WATCHDOG_MS    = 8000; // max time to wait for a single play-through to finish
+const unsigned long GATE_SETTLE_DELAY_MS    = 50;    // let the DFPlayer's rail actually rise before booting it
+const unsigned long DFPLAYER_BOOT_DELAY_MS  = 1000;  // let the module finish booting before sending commands
+const unsigned long PLAYBACK_START_DELAY_MS = 500;   // give playback a moment to actually start before polling BUSY
+const unsigned long COMMAND_SETTLE_DELAY_MS = 100;   // let the DFPlayer process/ACK one command before sending the next
+const uint8_t       QUERY_RETRY_COUNT       = 5;     // query-type commands are flakier than fire-and-forget ones on some clones
+const unsigned long QUERY_RETRY_DELAY_MS    = 200;
+const unsigned long PLAYBACK_WATCHDOG_MS    = 60000; // max time to wait for a single play-through to finish
 const unsigned long BUSY_POLL_MS            = 100;
 const unsigned long BLINK_DURATION_MS       = 200;
 const unsigned long BLINK_PAUSE_MS          = 800;
@@ -41,6 +47,8 @@ void setup() {
   digitalWrite(LED_BUILTIN, LOW);
   pinMode(BUSY_PIN, INPUT_PULLUP);
 
+  if (isVoltageLow(readVccMillivolts(), LOW_VOLTAGE_THRESHOLD_MV)) haltWithError();
+
   pinMode(DFPLAYER_GATE_PIN, OUTPUT);
   digitalWrite(DFPLAYER_GATE_PIN, HIGH); // power the DFPlayer Mini on
   delay(GATE_SETTLE_DELAY_MS);
@@ -52,21 +60,20 @@ void setup() {
 
   if (!player.begin(dfSerial)) haltWithError();
 
+  player.disableLoopAll(); // some DFPlayer clones default to looping the whole card otherwise
+  delay(COMMAND_SETTLE_DELAY_MS);
   player.volume(DEFAULT_VOLUME);
+  delay(COMMAND_SETTLE_DELAY_MS);
+  player.EQ(CONFIG_EQ);
+  delay(COMMAND_SETTLE_DELAY_MS);
 
   if (CONFIG_DELAY_SECONDS > 0) delay((unsigned long)CONFIG_DELAY_SECONDS * 1000UL);
 
   uint16_t trackNumber = pickTrack();
 
   for (uint8_t i = 0; i < CONFIG_PLAY_COUNT; i++) {
-    if (trackNumber == 0) {
-      player.randomAll();
-      delay(PLAYBACK_START_DELAY_MS);
-      trackNumber = player.readCurrentFileNumber(); // remember it so repeats replay the same track
-    } else {
-      player.play(trackNumber);
-      delay(PLAYBACK_START_DELAY_MS);
-    }
+    player.play(trackNumber);
+    delay(PLAYBACK_START_DELAY_MS);
     waitForPlaybackToFinish();
   }
 
@@ -75,14 +82,11 @@ void setup() {
 
 void loop() {}
 
-// Returns the DFPlayer track number to play, or 0 as a sentinel meaning
-// "use player.randomAll() instead" (DFPlayer's own random logic doesn't
-// require knowing a track number up front, and there's no way to control
-// or inspect its selection algorithm from the Nano side).
+// Returns the DFPlayer track number to play (1-based, DFPlayer numbering).
 uint16_t pickTrack() {
   switch (CONFIG_MODE) {
     case MODE_SEQUENTIAL: {
-      int total = player.readFileCounts();
+      int total = readFileCountsWithRetry();
       if (total <= 0) haltWithError();
       uint8_t stored = EEPROM.read(EEPROM_SEQ_INDEX_ADDR);
       uint8_t idx = resolveSequentialIndex(stored, (uint8_t)total);
@@ -90,9 +94,9 @@ uint16_t pickTrack() {
       return idx + 1; // DFPlayer track numbers are 1-based
     }
     case MODE_SHUFFLE: {
-      int total = player.readFileCounts();
+      int total = readFileCountsWithRetry();
       if (total <= 0) haltWithError();
-      if (total > SHUFFLE_MAX_TRACKS) return 0; // too many tracks to bitmask — fall back to DFPlayer's own random
+      if (total > SHUFFLE_MAX_TRACKS) return pickRandomTrack((uint8_t)total); // too many tracks to bitmask — fall back to a plain random pick
 
       uint16_t mask = (uint16_t)EEPROM.read(EEPROM_SHUFFLE_MASK_ADDR) |
                       ((uint16_t)EEPROM.read(EEPROM_SHUFFLE_MASK_ADDR + 1) << 8);
@@ -115,9 +119,45 @@ uint16_t pickTrack() {
     case MODE_SINGLE:
       return CONFIG_SINGLE_TRACK;
     case MODE_RANDOM:
-    default:
-      return 0;
+    default: {
+      int total = readFileCountsWithRetry();
+      if (total <= 0) haltWithError();
+      return pickRandomTrack((uint8_t)total);
+    }
   }
+}
+
+// Query-type commands (as opposed to fire-and-forget ones like play()) have
+// proven flaky on this hardware — retry a few times before giving up.
+int readFileCountsWithRetry() {
+  for (uint8_t attempt = 0; attempt < QUERY_RETRY_COUNT; attempt++) {
+    int total = player.readFileCounts();
+    if (total > 0) return total;
+    delay(QUERY_RETRY_DELAY_MS);
+  }
+  return -1;
+}
+
+// randomAll() is unreliable on some DFPlayer Mini clones (keeps auto-advancing
+// through the whole card regardless of what the Nano does afterward) — picking
+// a track number ourselves and calling play() sidesteps that entirely.
+uint16_t pickRandomTrack(uint8_t total) {
+  return (uint16_t)(random(total) + 1); // DFPlayer track numbers are 1-based
+}
+
+// Reads the Nano's own supply rail voltage by measuring the internal 1.1V
+// bandgap reference against it — no extra hardware needed. Lets us catch a
+// sagging/weak 5V rail (dying battery, marginal USB supply) before it
+// causes garbled audio or an unreliable DFPlayer boot.
+uint16_t readVccMillivolts() {
+  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  delay(2);
+  ADCSRA |= _BV(ADSC);
+  while (bit_is_set(ADCSRA, ADSC));
+  uint8_t low  = ADCL;
+  uint8_t high = ADCH;
+  uint32_t reading = ((uint32_t)high << 8) | low;
+  return (uint16_t)(1125300UL / reading);
 }
 
 void waitForPlaybackToFinish() {
@@ -144,8 +184,9 @@ void enterPowerDownSleep() {
   while (true);
 }
 
-// No DFPlayer detected, failed to initialize, no tracks found, or a
-// play-through never finished within the watchdog: blink forever.
+// 5V rail too weak to trust, no DFPlayer detected, failed to initialize,
+// no tracks found, or a play-through never finished within the watchdog:
+// blink forever.
 void haltWithError() {
   while (true) {
     for (uint8_t cycle = 0; cycle < ERROR_BLINK_CYCLES; cycle++) {

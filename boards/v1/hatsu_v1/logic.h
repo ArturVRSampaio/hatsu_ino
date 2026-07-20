@@ -42,3 +42,7 @@ enum PlayMode : uint8_t {
   MODE_SHUFFLE,
   MODE_SINGLE
 };
+
+inline bool isVoltageLow(uint16_t millivolts, uint16_t thresholdMillivolts) {
+  return millivolts < thresholdMillivolts;
+}

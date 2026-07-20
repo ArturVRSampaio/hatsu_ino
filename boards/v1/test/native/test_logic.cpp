@@ -82,3 +82,14 @@ TEST_CASE("reservoirShouldReplace follows the injected random function", "[reser
     REQUIRE(reservoirShouldReplace(4, [](long n) -> long { return n - 1; }) == false);
     REQUIRE(reservoirShouldReplace(1, [](long n) -> long { return n - 1; }) == true);
 }
+
+// --- isVoltageLow ---
+
+TEST_CASE("isVoltageLow is true below the threshold", "[voltage]") {
+    REQUIRE(isVoltageLow(4000, 4500));
+}
+
+TEST_CASE("isVoltageLow is false at or above the threshold", "[voltage]") {
+    REQUIRE_FALSE(isVoltageLow(4500, 4500));
+    REQUIRE_FALSE(isVoltageLow(5000, 4500));
+}

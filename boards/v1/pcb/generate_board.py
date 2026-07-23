@@ -60,10 +60,15 @@ spk = place(load("TerminalBlock_Phoenix.pretty",
             100.0, 25.0, "SPK1")
 
 # ── Board outline ────────────────────────────────────────────────────
+# Sized to 99x46mm (under PCB Brasil's 100x100mm prototype-tier cap) by
+# tightly wrapping the actual routed content (x=11..106, y=5..45.56)
+# rather than the old, far-oversized 5..110 outline. No component or trace
+# moves - this only tightens the board edge around the existing,
+# DRC-verified layout, so none of that routing needs re-validating.
 outline = pcbnew.PCB_SHAPE(board)
 outline.SetShape(pcbnew.SHAPE_T_RECT)
-outline.SetStart(pcbnew.VECTOR2I(pcbnew.FromMM(5), pcbnew.FromMM(2)))
-outline.SetEnd(pcbnew.VECTOR2I(pcbnew.FromMM(110), pcbnew.FromMM(48)))
+outline.SetStart(pcbnew.VECTOR2I(pcbnew.FromMM(9), pcbnew.FromMM(2)))
+outline.SetEnd(pcbnew.VECTOR2I(pcbnew.FromMM(108), pcbnew.FromMM(48)))
 outline.SetLayer(pcbnew.Edge_Cuts)
 outline.SetWidth(pcbnew.FromMM(0.15))
 board.Add(outline)

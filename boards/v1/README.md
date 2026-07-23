@@ -209,6 +209,8 @@ Instead of wiring the Nano, DFPlayer Mini, R1/R2, and Q1 together with loose jum
 
 The board is generated (not hand-drawn) via [KiCad](https://www.kicad.org/)'s `pcbnew` Python API, from the same pin mappings and wiring documented in this README, cross-checked against Arduino's official Nano pinout and the DFPlayer Mini's datasheet pin table rather than guessed. It's DRC-clean (0 errors) — verified with `kicad-cli pcb ... ` reports since this KiCad install doesn't have the `pcb drc` CLI subcommand, so DRC was run via `pcbnew.WriteDRCReport()` instead.
 
+**Dimensions: 99.15×46.15mm** — deliberately kept under 100×100mm so it qualifies for cheaper "prototype tier" pricing at PCB fab houses that offer one (e.g. [PCB Brasil](https://pcbbrasil.com.br/prototipos)'s prototype program caps out at 100×100mm).
+
 **Regenerate the board:**
 ```bash
 cd pcb

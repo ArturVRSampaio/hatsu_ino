@@ -203,6 +203,21 @@ openscad -o lid.stl  -D 'part="lid"'  case/case.scad
 
 **Suggested print settings:** PLA or PETG, 0.2mm layer height, 3 perimeters, 20% infill, no supports needed for the base or lid as designed.
 
+## Shield PCB (optional)
+
+Instead of wiring the Nano, DFPlayer Mini, R1/R2, and Q1 together with loose jumper wires, `pcb/generate_board.py` generates a small shield PCB: female headers on one side plug directly onto the Nano's own pins, header sockets on the other side accept the DFPlayer Mini, and R1/R2/Q1/the speaker terminal are built into the board itself. It's optional — the loose-wire build documented above works fine — this just gets rid of the wiring for anyone who'd rather have a compact, solderable board.
+
+The board is generated (not hand-drawn) via [KiCad](https://www.kicad.org/)'s `pcbnew` Python API, from the same pin mappings and wiring documented in this README, cross-checked against Arduino's official Nano pinout and the DFPlayer Mini's datasheet pin table rather than guessed. It's DRC-clean (0 errors) — verified with `kicad-cli pcb ... ` reports since this KiCad install doesn't have the `pcb drc` CLI subcommand, so DRC was run via `pcbnew.WriteDRCReport()` instead.
+
+**Regenerate the board:**
+```bash
+cd pcb
+python3 generate_board.py    # writes hatsu_v1_shield.kicad_pcb
+```
+Open `hatsu_v1_shield.kicad_pcb` in KiCad to inspect, tweak, or export Gerbers for fabrication.
+
+**Known limitation:** this hasn't been fabricated or tested on real hardware — it's a from-scratch layout verified only via DRC and a geometric routing checker (`check_routes.py`), not by actually populating and powering a board. Confirm continuity with a multimeter before trusting it with real hardware, and re-check the DFPlayer Mini header footprint's 2.0mm-vs-2.54mm pin pitch against your actual module (see "Known hardware quirks" — this was inferred from a breadboard fit test, not a caliper measurement). If you build this shield, the case dimensions above will also need rechecking — they were designed around the loose-wire build's component footprint, not this board's.
+
 ## Testing
 
 ### Native tests (CI)
